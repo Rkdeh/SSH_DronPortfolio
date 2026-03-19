@@ -138,11 +138,8 @@ const s2Elements = [
   document.querySelector('.desc-ellipse'),
 ];
 
-// 섹션 2 하단이 뷰포트 하단에 일치하는 스크롤 위치 동적 계산
+// 섹션 2 하단이 뷰포트 하단에 일치하는 순간 드론 앵커
 const _descSection = document.querySelector('.description-section');
-const DRONE_PAGE_Y = _descSection
-  ? Math.max(0, _descSection.offsetTop + _descSection.offsetHeight - window.innerHeight)
-  : 970;
 let droneAnchored  = false;
 
 function triggerSection2Reveal() {
@@ -152,19 +149,19 @@ function triggerSection2Reveal() {
 }
 
 function updateScrollDrone() {
-  if (!scrollDrone) return;
-  const scrollY = window.scrollY;
+  if (!scrollDrone || !_descSection) return;
+  const windowH = window.innerHeight;
+  const rect = _descSection.getBoundingClientRect();
+  const atAnchor = rect.bottom <= windowH;
 
-  if (scrollY < DRONE_PAGE_Y) {
+  if (!atAnchor) {
     scrollDrone.style.top = '0px';
-
     if (droneAnchored) {
       droneAnchored = false;
       s2Elements.forEach(el => { if (el) el.classList.remove('s2-visible'); });
     }
   } else {
-    scrollDrone.style.top = (DRONE_PAGE_Y - scrollY) + 'px';
-
+    scrollDrone.style.top = (rect.bottom - windowH) + 'px';
     if (!droneAnchored) {
       droneAnchored = true;
       triggerSection2Reveal();
@@ -214,7 +211,8 @@ function updateMotionSection() {
   // Phase 2: 미디어 확대 — 타겟을 실제 뷰포트 크기로 계산 (화면 비율 무관하게 꽉 채움)
   if (motionWrap && motionMedia) {
     const wrapRect      = motionWrap.getBoundingClientRect();
-    const PHASE2_SCROLL = 3000;
+    // getBoundingClientRect는 visual px 반환 → zoom 보정으로 CSS px 기준 3000px 스크롤 재현
+    const PHASE2_SCROLL = 3000 * zoom;
     const p2 = Math.max(0, Math.min(1, -wrapRect.top / PHASE2_SCROLL));
 
     const zoom     = parseFloat(document.documentElement.style.zoom) || 1;
