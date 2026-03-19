@@ -202,32 +202,29 @@ const motionMedia     = document.querySelector('.motion-media');
 function updateMotionSection() {
   if (!motionSection) return;
 
-  // Phase 1: 타이틀 슬라이드
-  // 트리거: 섹션 하단이 뷰포트 하단에 일치하는 순간(p=0) → 섹션 상단이 뷰포트 상단(p=1)
-  const rect    = motionSection.getBoundingClientRect();
+  // Phase 1: 타이틀 슬라이드 — 섹션이 뷰포트에 진입하는 동안 재생
   const windowH = window.innerHeight;
-  const sectionH = rect.height;
-  const trig1 = windowH - sectionH; // rect.top 값 (섹션 하단 = 뷰포트 하단일 때)
-  const p1 = trig1 > 0
-    ? Math.max(0, Math.min(1, (trig1 - rect.top) / trig1))
-    : Math.max(0, Math.min(1, (windowH - rect.top) / windowH));
+  const wrapRect1 = motionWrap ? motionWrap.getBoundingClientRect() : motionSection.getBoundingClientRect();
+  const p1 = Math.max(0, Math.min(1, (windowH - wrapRect1.top) / windowH));
 
   if (motionLeft)  motionLeft.style.transform  = `translateX(calc(-50% + ${-2000 * (1 - p1)}px))`;
   if (motionRight) motionRight.style.transform = `translateX(calc(-50% + ${ 2000 * (1 - p1)}px))`;
   if (motionDescAnim) motionDescAnim.classList.toggle('motion-visible', p1 >= 1);
 
-  // Phase 2: 미디어 확대 (sticky 추가 스크롤 3000px)
-  // 트리거: 섹션 하단이 뷰포트 하단에 도달한 시점부터 시작
+  // Phase 2: 미디어 확대 — 타겟을 실제 뷰포트 크기로 계산 (화면 비율 무관하게 꽉 채움)
   if (motionWrap && motionMedia) {
     const wrapRect      = motionWrap.getBoundingClientRect();
     const PHASE2_SCROLL = 3000;
-    const p2Offset      = Math.max(0, trig1); // 섹션 하단→뷰포트 하단까지의 여유분
-    const p2 = Math.max(0, Math.min(1, (-wrapRect.top + p2Offset) / PHASE2_SCROLL));
+    const p2 = Math.max(0, Math.min(1, -wrapRect.top / PHASE2_SCROLL));
 
-    motionMedia.style.width        = (614  + (1920 - 614)  * p2) + 'px';
-    motionMedia.style.height       = (320  + (1080 - 320)  * p2) + 'px';
+    const zoom     = parseFloat(document.documentElement.style.zoom) || 1;
+    const fullH    = Math.round(windowH / zoom);   // CSS px = 뷰포트 높이
+    const startTop = Math.round((fullH - 320) / 2); // 초기 영상을 수직 중앙에 배치
+
+    motionMedia.style.width        = (614  + (1920 - 614) * p2) + 'px';
+    motionMedia.style.height       = (320  + (fullH - 320) * p2) + 'px';
     motionMedia.style.left         = (653  * (1 - p2)) + 'px';
-    motionMedia.style.top          = (380  * (1 - p2)) + 'px';
+    motionMedia.style.top          = (startTop * (1 - p2)) + 'px';
     motionMedia.style.borderRadius = p2 >= 1 ? '0px' : '10px';
   }
 }
