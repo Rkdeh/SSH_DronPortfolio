@@ -211,12 +211,11 @@ function updateMotionSection() {
   // Phase 2: 미디어 확대 — 타겟을 실제 뷰포트 크기로 계산 (화면 비율 무관하게 꽉 채움)
   if (motionWrap && motionMedia) {
     const wrapRect      = motionWrap.getBoundingClientRect();
+    const zoom          = parseFloat(document.documentElement.style.zoom) || 1;
+    const fullH         = Math.round(windowH / zoom);   // CSS px = 뷰포트 높이
     // getBoundingClientRect는 visual px 반환 → zoom 보정으로 CSS px 기준 3000px 스크롤 재현
     const PHASE2_SCROLL = 3000 * zoom;
     const p2 = Math.max(0, Math.min(1, -wrapRect.top / PHASE2_SCROLL));
-
-    const zoom     = parseFloat(document.documentElement.style.zoom) || 1;
-    const fullH    = Math.round(windowH / zoom);   // CSS px = 뷰포트 높이
     const startTop = Math.round((fullH - 320) / 2); // 초기 영상을 수직 중앙에 배치
 
     motionMedia.style.width        = (614  + (1920 - 614) * p2) + 'px';
