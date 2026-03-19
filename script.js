@@ -138,7 +138,11 @@ const s2Elements = [
   document.querySelector('.desc-ellipse'),
 ];
 
-const DRONE_PAGE_Y = 970;
+// 섹션 2 하단이 뷰포트 하단에 일치하는 스크롤 위치 동적 계산
+const _descSection = document.querySelector('.description-section');
+const DRONE_PAGE_Y = _descSection
+  ? Math.max(0, _descSection.offsetTop + _descSection.offsetHeight - window.innerHeight)
+  : 970;
 let droneAnchored  = false;
 
 function triggerSection2Reveal() {
@@ -198,20 +202,27 @@ const motionMedia     = document.querySelector('.motion-media');
 function updateMotionSection() {
   if (!motionSection) return;
 
-  // Phase 1: 타이틀 슬라이드 (섹션이 뷰포트 진입)
+  // Phase 1: 타이틀 슬라이드
+  // 트리거: 섹션 하단이 뷰포트 하단에 일치하는 순간(p=0) → 섹션 상단이 뷰포트 상단(p=1)
   const rect    = motionSection.getBoundingClientRect();
   const windowH = window.innerHeight;
-  const p1 = Math.max(0, Math.min(1, (windowH - rect.top) / windowH));
+  const sectionH = rect.height;
+  const trig1 = windowH - sectionH; // rect.top 값 (섹션 하단 = 뷰포트 하단일 때)
+  const p1 = trig1 > 0
+    ? Math.max(0, Math.min(1, (trig1 - rect.top) / trig1))
+    : Math.max(0, Math.min(1, (windowH - rect.top) / windowH));
 
   if (motionLeft)  motionLeft.style.transform  = `translateX(calc(-50% + ${-2000 * (1 - p1)}px))`;
   if (motionRight) motionRight.style.transform = `translateX(calc(-50% + ${ 2000 * (1 - p1)}px))`;
   if (motionDescAnim) motionDescAnim.classList.toggle('motion-visible', p1 >= 1);
 
   // Phase 2: 미디어 확대 (sticky 추가 스크롤 3000px)
+  // 트리거: 섹션 하단이 뷰포트 하단에 도달한 시점부터 시작
   if (motionWrap && motionMedia) {
     const wrapRect      = motionWrap.getBoundingClientRect();
     const PHASE2_SCROLL = 3000;
-    const p2 = Math.max(0, Math.min(1, -wrapRect.top / PHASE2_SCROLL));
+    const p2Offset      = Math.max(0, trig1); // 섹션 하단→뷰포트 하단까지의 여유분
+    const p2 = Math.max(0, Math.min(1, (-wrapRect.top + p2Offset) / PHASE2_SCROLL));
 
     motionMedia.style.width        = (614  + (1920 - 614)  * p2) + 'px';
     motionMedia.style.height       = (320  + (1080 - 320)  * p2) + 'px';
@@ -229,6 +240,7 @@ updateMotionSection();
 //   1) 섹션이 뷰포트를 꽉 채울 때까지(sticky 시작 전) → p=0, 카드 532×280 고정
 //   2) sticky 상태에서 추가 스크롤 → p: 0→1, 카드 확장 후 다음 섹션으로 전환
 const masterpieceWrap     = document.querySelector('.masterpiece-scroll-wrap');
+const masterpieceSection  = document.querySelector('.masterpiece-section');
 const masterpieceCard     = document.querySelector('.masterpiece-card');
 const masterpieceBackCard = document.querySelector('.masterpiece-back-card');
 const masterpieceTexts    = document.querySelectorAll('.masterpiece-title, .masterpiece-sub');
@@ -240,7 +252,11 @@ const PHASE2 = 600; // 백카드 전진
 function updateMasterpiece() {
   if (!masterpieceWrap || !masterpieceCard) return;
 
-  const scrolled = -masterpieceWrap.getBoundingClientRect().top;
+  // 트리거: 섹션 하단이 뷰포트 하단에 일치하는 순간부터 scrolled 계산 시작
+  const windowH  = window.innerHeight;
+  const mpSecH   = masterpieceSection ? masterpieceSection.getBoundingClientRect().height : windowH;
+  const mpOffset = Math.max(0, windowH - mpSecH); // 100vh 섹션이면 ≈ 0
+  const scrolled = -masterpieceWrap.getBoundingClientRect().top + mpOffset;
 
   // ── Phase 1: 메인카드 확장 (0 → PHASE1) ──────────────────
   const p1 = Math.max(0, Math.min(1, scrolled / PHASE1));
