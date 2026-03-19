@@ -63,7 +63,7 @@ button { cursor: pointer; border: none; background: none; }
   border-radius: 20px;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  z-index: 100;
+  z-index: 500;
 }
 
 .navbar-inner {

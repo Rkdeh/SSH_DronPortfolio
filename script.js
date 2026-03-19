@@ -161,7 +161,8 @@ function updateScrollDrone() {
       s2Elements.forEach(el => { if (el) el.classList.remove('s2-visible'); });
     }
   } else {
-    scrollDrone.style.top = (rect.bottom - windowH) + 'px';
+    const zoom = parseFloat(document.documentElement.style.zoom) || 1;
+    scrollDrone.style.top = (rect.bottom - windowH) / zoom + 'px';
     if (!droneAnchored) {
       droneAnchored = true;
       triggerSection2Reveal();
@@ -246,48 +247,52 @@ const PHASE2 = 600; // 백카드 전진
 function updateMasterpiece() {
   if (!masterpieceWrap || !masterpieceCard) return;
 
-  // 트리거: 섹션 하단이 뷰포트 하단에 일치하는 순간부터 scrolled 계산 시작
-  const windowH  = window.innerHeight;
+  // zoom 보정: getBoundingClientRect는 visual px, PHASE1/2는 CSS px 기준
+  const zoom    = parseFloat(document.documentElement.style.zoom) || 1;
+  const windowH = window.innerHeight;
+  // viewport 비율로 카드 위치/높이 스케일 (설계 기준 1080px 대비)
+  const vScale  = windowH / 1080;
+
   const mpSecH   = masterpieceSection ? masterpieceSection.getBoundingClientRect().height : windowH;
-  const mpOffset = Math.max(0, windowH - mpSecH); // 100vh 섹션이면 ≈ 0
+  const mpOffset = Math.max(0, windowH - mpSecH);
   const scrolled = -masterpieceWrap.getBoundingClientRect().top + mpOffset;
 
-  // ── Phase 1: 메인카드 확장 (0 → PHASE1) ──────────────────
-  const p1 = Math.max(0, Math.min(1, scrolled / PHASE1));
+  const phase1 = PHASE1 * zoom; // visual px 기준으로 변환
+  const phase2 = PHASE2 * zoom;
+
+  // ── Phase 1: 메인카드 확장 (0 → phase1) ──────────────────
+  const p1 = Math.max(0, Math.min(1, scrolled / phase1));
 
   masterpieceCard.style.width  = (532  + (1760 - 532)  * p1) + 'px';
-  masterpieceCard.style.height = (280  + (924  - 280)  * p1) + 'px';
-  masterpieceCard.style.bottom = (140  + (40   - 140)  * p1) + 'px';
+  masterpieceCard.style.height = (280  + (Math.round(924 * vScale) - 280) * p1) + 'px';
+  masterpieceCard.style.bottom = (Math.round(140 * vScale) + (Math.round(40 * vScale) - Math.round(140 * vScale)) * p1) + 'px';
 
   // 제목/서브 페이드 아웃
   const textOpacity = Math.max(0, 1 - p1 * 2.5);
   masterpieceTexts.forEach(el => { if (el) el.style.opacity = textOpacity; });
 
-  // 오버레이는 p1=0.75~1 구간에서 페이드 인 (백카드는 Phase2에서만)
+  // 오버레이는 p1=0.75~1 구간에서 페이드 인
   const overlayOpacity = Math.max(0, Math.min(1, (p1 - 0.75) / 0.25));
   if (masterpieceOverlay) masterpieceOverlay.style.opacity = overlayOpacity;
 
   // ── Phase 2: 첫 카드 유지 → 백카드 등장 → 백카드 전진 ────
-  const p2 = Math.max(0, Math.min(1, (scrolled - PHASE1) / PHASE2));
+  const p2 = Math.max(0, Math.min(1, (scrolled - phase1) / phase2));
 
-  // p2=0~0.35: 첫 카드 유지 구간 (아무것도 안 움직임)
-  // p2=0.35~0.65: 백카드 페이드 인
   const backOpacity = Math.max(0, Math.min(1, (p2 - 0.35) / 0.30));
   if (masterpieceBackCard) masterpieceBackCard.style.opacity = backOpacity;
 
-  // p2=0.65~1: 백카드 전진 + 메인카드 슬라이드 아웃
   const p2b = Math.max(0, Math.min(1, (p2 - 0.65) / 0.35));
 
   if (masterpieceBackCard) {
     masterpieceBackCard.style.width  = (1600 + (1760 - 1600) * p2b) + 'px';
-    masterpieceBackCard.style.height = (840  + (924  - 840)  * p2b) + 'px';
-    masterpieceBackCard.style.bottom = (204  + (40   - 204)  * p2b) + 'px';
+    masterpieceBackCard.style.height = (Math.round(840 * vScale) + (Math.round(924 * vScale) - Math.round(840 * vScale)) * p2b) + 'px';
+    masterpieceBackCard.style.bottom = (Math.round(204 * vScale) + (Math.round(40 * vScale) - Math.round(204 * vScale)) * p2b) + 'px';
     masterpieceBackCard.style.filter = `blur(${6 * (1 - p2b)}px)`;
     masterpieceBackCard.style.zIndex = p2b > 0 ? '3' : '1';
   }
 
-  // 메인카드: 아래로 내려가면서 페이드 아웃 (p2b 구간)
-  masterpieceCard.style.bottom  = (40 - 300 * p2b) + 'px';
+  // 메인카드: 아래로 내려가면서 페이드 아웃
+  masterpieceCard.style.bottom  = (Math.round(40 * vScale) - 300 * p2b) + 'px';
   masterpieceCard.style.opacity = Math.max(0, 1 - p2b * 1.5);
 }
 
